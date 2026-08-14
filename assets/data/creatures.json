@@ -1,0 +1,46 @@
+{
+  "creatures": [
+    {
+      "tier": 0,
+      "id": "egg",
+      "name": "Egg",
+      "hint": "Merge 3 to hatch."
+    },
+    {
+      "tier": 1,
+      "id": "nibbit",
+      "name": "Nibbit",
+      "hint": "A sleepy nibble with big eyes."
+    },
+    {
+      "tier": 2,
+      "id": "sproutling",
+      "name": "Sproutling",
+      "hint": "Tiny leaves, tiny punches."
+    },
+    {
+      "tier": 3,
+      "id": "bloomlet",
+      "name": "Bloomlet",
+      "hint": "Petals that sting."
+    },
+    {
+      "tier": 4,
+      "id": "grovekin",
+      "name": "Grovekin",
+      "hint": "A walking thicket."
+    },
+    {
+      "tier": 5,
+      "id": "luminox",
+      "name": "Luminox",
+      "hint": "Glows when it is proud."
+    },
+    {
+      "tier": 6,
+      "id": "mythowisp",
+      "name": "Mythowisp",
+      "hint": "The hatchling that outgrew the nest."
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "enemy": {
+    "baseHp": 15,
+    "hpGrowth": 1.16,
+    "baseGold": 8,
+    "goldGrowth": 1.11
+  },
+  "upgrades": {
+    "tapDamage": {
+      "id": "tapDamage",
+      "name": "Tap Power",
+      "blurb": "Smash harder with every tap.",
+      "baseCost": 10,
+      "costGrowth": 1.13,
+      "baseValue": 1.12,
+      "valueGrowth": 1.12
+    },
+    "autoDps": {
+      "id": "autoDps",
+      "name": "Auto Strike",
+      "blurb": "Hatchlings fight while you watch.",
+      "baseCost": 48,
+      "costGrowth": 1.14,
+      "baseValue": 0.85,
+      "valueGrowth": 1.11
+    },
+    "goldMult": {
+      "id": "goldMult",
+      "name": "Gold Find",
+      "blurb": "More coins from every knockout.",
+      "baseCost": 95,
+      "costGrowth": 1.16,
+      "baseValue": 0.1,
+      "valueGrowth": 0
+    }
+  },
+  "offline": {
+    "capSeconds": 28800,
+    "goldPerDamage": 0.42,
+    "minPopupSeconds": 30
+  },
+  "merge": {
+    "cols": 5,
+    "rows": 4,
+    "spawnInterval": 6.5,
+    "killEggChance": 0.22,
+    "maxTier": 6,
+    "maxTierGoldBurst": 180
+  },
+  "prestige": {
+    "minStage": 50,
+    "crystalsPerStage": 0.14
+  },
+  "relicGoldPerCrystal": 0.012,
+  "creatureDps": [0, 0.7, 2.4, 8.5, 30, 105, 380],
+  "creatureGoldPerSec": [0, 0.25, 0.9, 3.2, 12, 44, 160],
+  "goldBoostSeconds": 300,
+  "startingEggs": 3
+}
