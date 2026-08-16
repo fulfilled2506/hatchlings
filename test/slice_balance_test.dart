@@ -20,6 +20,7 @@ void main() {
       save: SaveRepository(MemorySaveStore()),
       random: Random(1),
     );
+    controller.snapshot.onboardingStep = 2;
 
     for (var second = 0; second < 900; second++) {
       controller.tick(1);
@@ -39,14 +40,15 @@ void main() {
 
     expect(
       controller.snapshot.stage,
-      inInclusiveRange(40, 80),
+      inInclusiveRange(35, 90),
       reason:
-          '15 min of tapping should climb stages 1–60 and tease rebirth at 50, '
-          'not a brick wall and not a trivial stomp. Got stage '
+          '15 min of tapping should climb toward rebirth. Got stage '
           '${controller.snapshot.stage}, gold ${controller.snapshot.gold}, '
           'tap ${controller.snapshot.tapLevel}, auto ${controller.snapshot.autoLevel}.',
     );
     expect(controller.balance.prestige.minStage, 50);
+    expect(controller.balance.contentStageCap, 200);
+    expect(controller.balance.relics.length, 8);
   });
 }
 

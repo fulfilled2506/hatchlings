@@ -1,46 +1,142 @@
 {
+  "lines": [
+    { "id": "forest", "name": "Grove", "index": 0 },
+    { "id": "sea", "name": "Tide", "index": 1 },
+    { "id": "fire", "name": "Ember", "index": 2 }
+  ],
   "creatures": [
     {
       "tier": 0,
+      "line": -1,
       "id": "egg",
       "name": "Egg",
-      "hint": "Merge 3 to hatch."
+      "hint": "Merge 3 to hatch a line."
     },
     {
       "tier": 1,
+      "line": 0,
       "id": "nibbit",
       "name": "Nibbit",
-      "hint": "A sleepy nibble with big eyes."
+      "hint": "Grove hatchling with big eyes."
     },
     {
       "tier": 2,
+      "line": 0,
       "id": "sproutling",
       "name": "Sproutling",
       "hint": "Tiny leaves, tiny punches."
     },
     {
       "tier": 3,
+      "line": 0,
       "id": "bloomlet",
       "name": "Bloomlet",
       "hint": "Petals that sting."
     },
     {
       "tier": 4,
+      "line": 0,
       "id": "grovekin",
       "name": "Grovekin",
       "hint": "A walking thicket."
     },
     {
       "tier": 5,
+      "line": 0,
       "id": "luminox",
       "name": "Luminox",
-      "hint": "Glows when it is proud."
+      "hint": "Glows when proud."
     },
     {
       "tier": 6,
+      "line": 0,
       "id": "mythowisp",
       "name": "Mythowisp",
-      "hint": "The hatchling that outgrew the nest."
+      "hint": "Outgrew the nest."
+    },
+    {
+      "tier": 1,
+      "line": 1,
+      "id": "bubkin",
+      "name": "Bubkin",
+      "hint": "Tide hatchling in a bubble."
+    },
+    {
+      "tier": 2,
+      "line": 1,
+      "id": "ripple",
+      "name": "Ripple",
+      "hint": "Splashy punches."
+    },
+    {
+      "tier": 3,
+      "line": 1,
+      "id": "coralette",
+      "name": "Coralette",
+      "hint": "Reef sharpshooter."
+    },
+    {
+      "tier": 4,
+      "line": 1,
+      "id": "tideling",
+      "name": "Tideling",
+      "hint": "Carries a tiny wave."
+    },
+    {
+      "tier": 5,
+      "line": 1,
+      "id": "abysslit",
+      "name": "Abysslit",
+      "hint": "Deep blue stare."
+    },
+    {
+      "tier": 6,
+      "line": 1,
+      "id": "marrowhale",
+      "name": "Marrowhale",
+      "hint": "Song of the shallows."
+    },
+    {
+      "tier": 1,
+      "line": 2,
+      "id": "cinderbit",
+      "name": "Cinderbit",
+      "hint": "Ember hatchling, always warm."
+    },
+    {
+      "tier": 2,
+      "line": 2,
+      "id": "sparklet",
+      "name": "Sparklet",
+      "hint": "Pops like a spark."
+    },
+    {
+      "tier": 3,
+      "line": 2,
+      "id": "flameling",
+      "name": "Flameling",
+      "hint": "Tiny roar, big heat."
+    },
+    {
+      "tier": 4,
+      "line": 2,
+      "id": "ashkin",
+      "name": "Ashkin",
+      "hint": "Smoky swagger."
+    },
+    {
+      "tier": 5,
+      "line": 2,
+      "id": "pyrelit",
+      "name": "Pyrelit",
+      "hint": "Lantern on legs."
+    },
+    {
+      "tier": 6,
+      "line": 2,
+      "id": "solwisp",
+      "name": "Solwisp",
+      "hint": "A nest-born sun."
     }
   ]
 }

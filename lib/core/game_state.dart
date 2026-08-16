@@ -1,3 +1,4 @@
+import 'creature_ids.dart';
 import 'economy.dart';
 
 class GameSnapshot {
@@ -11,12 +12,20 @@ class GameSnapshot {
     required this.tapLevel,
     required this.autoLevel,
     required this.goldMultLevel,
+    required this.offlineCapLevel,
     required this.board,
     required this.lastSaveMs,
     required this.discovered,
     required this.prestigeCount,
     required this.adsRemoved,
     required this.highestStage,
+    required this.relicLevels,
+    required this.missionDay,
+    required this.missionProgress,
+    required this.missionClaimed,
+    required this.albumClaims,
+    required this.onboardingStep,
+    required this.stagesClearedToday,
   });
 
   double gold;
@@ -28,18 +37,26 @@ class GameSnapshot {
   int tapLevel;
   int autoLevel;
   int goldMultLevel;
+  int offlineCapLevel;
   List<int?> board;
   int lastSaveMs;
   Set<int> discovered;
   int prestigeCount;
   bool adsRemoved;
   int highestStage;
+  Map<String, int> relicLevels;
+  String missionDay;
+  Map<String, int> missionProgress;
+  Set<String> missionClaimed;
+  Set<String> albumClaims;
+  int onboardingStep;
+  int stagesClearedToday;
 
   factory GameSnapshot.fresh(Balance balance) {
     final hp = Economy.enemyHp(balance, 1);
     final board = List<int?>.filled(balance.merge.cellCount, null);
     for (var i = 0; i < balance.startingEggs && i < board.length; i++) {
-      board[i] = 0;
+      board[i] = CreatureIds.egg;
     }
     return GameSnapshot(
       gold: 0,
@@ -51,12 +68,20 @@ class GameSnapshot {
       tapLevel: 0,
       autoLevel: 0,
       goldMultLevel: 0,
+      offlineCapLevel: 0,
       board: board,
       lastSaveMs: DateTime.now().millisecondsSinceEpoch,
-      discovered: {0},
+      discovered: {CreatureIds.egg},
       prestigeCount: 0,
       adsRemoved: false,
       highestStage: 1,
+      relicLevels: {},
+      missionDay: '',
+      missionProgress: {},
+      missionClaimed: {},
+      albumClaims: {},
+      onboardingStep: 0,
+      stagesClearedToday: 0,
     );
   }
 
@@ -74,6 +99,10 @@ class GameSnapshot {
     final maxHp = Economy.enemyHp(balance, stage);
     final hp = (json['enemyHp'] as num?)?.toDouble() ?? maxHp;
 
+    final relicsRaw = json['relicLevels'] as Map<String, dynamic>? ?? {};
+    final missionProg =
+        json['missionProgress'] as Map<String, dynamic>? ?? {};
+
     return GameSnapshot(
       gold: (json['gold'] as num?)?.toDouble() ?? 0,
       gems: (json['gems'] as num?)?.toDouble() ?? 0,
@@ -84,18 +113,36 @@ class GameSnapshot {
       tapLevel: (json['tapLevel'] as num?)?.toInt() ?? 0,
       autoLevel: (json['autoLevel'] as num?)?.toInt() ?? 0,
       goldMultLevel: (json['goldMultLevel'] as num?)?.toInt() ?? 0,
+      offlineCapLevel: (json['offlineCapLevel'] as num?)?.toInt() ?? 0,
       board: board,
       lastSaveMs:
           (json['lastSaveMs'] as num?)?.toInt() ??
           DateTime.now().millisecondsSinceEpoch,
       discovered: {
-        0,
+        CreatureIds.egg,
         ...((json['discovered'] as List<dynamic>? ?? [])
             .map((e) => (e as num).toInt())),
       },
       prestigeCount: (json['prestigeCount'] as num?)?.toInt() ?? 0,
       adsRemoved: json['adsRemoved'] as bool? ?? false,
       highestStage: (json['highestStage'] as num?)?.toInt() ?? stage,
+      relicLevels: relicsRaw.map(
+        (k, v) => MapEntry(k, (v as num).toInt()),
+      ),
+      missionDay: json['missionDay'] as String? ?? '',
+      missionProgress: missionProg.map(
+        (k, v) => MapEntry(k, (v as num).toInt()),
+      ),
+      missionClaimed: {
+        ...((json['missionClaimed'] as List<dynamic>? ?? [])
+            .map((e) => e as String)),
+      },
+      albumClaims: {
+        ...((json['albumClaims'] as List<dynamic>? ?? [])
+            .map((e) => e as String)),
+      },
+      onboardingStep: (json['onboardingStep'] as num?)?.toInt() ?? 2,
+      stagesClearedToday: (json['stagesClearedToday'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -109,12 +156,20 @@ class GameSnapshot {
       'tapLevel': tapLevel,
       'autoLevel': autoLevel,
       'goldMultLevel': goldMultLevel,
+      'offlineCapLevel': offlineCapLevel,
       'board': board,
       'lastSaveMs': lastSaveMs,
       'discovered': discovered.toList()..sort(),
       'prestigeCount': prestigeCount,
       'adsRemoved': adsRemoved,
       'highestStage': highestStage,
+      'relicLevels': relicLevels,
+      'missionDay': missionDay,
+      'missionProgress': missionProgress,
+      'missionClaimed': missionClaimed.toList()..sort(),
+      'albumClaims': albumClaims.toList()..sort(),
+      'onboardingStep': onboardingStep,
+      'stagesClearedToday': stagesClearedToday,
     };
   }
 }
@@ -144,7 +199,12 @@ class OfflineCalculator {
   }) {
     final elapsedMs = nowMs - snapshot.lastSaveMs;
     final elapsed = (elapsedMs / 1000).clamp(0, 1e9).toDouble();
-    final capped = elapsed.clamp(0, balance.offline.capSeconds).toDouble();
+    final cap = Economy.offlineCapSeconds(
+      balance: balance,
+      offlineCapLevel: snapshot.offlineCapLevel,
+      relics: snapshot.relicLevels,
+    );
+    final capped = elapsed.clamp(0, cap).toDouble();
 
     final gps = Economy.goldPerSec(
       balance: balance,
@@ -153,11 +213,13 @@ class OfflineCalculator {
       goldMultLevel: snapshot.goldMultLevel,
       crystals: snapshot.timeCrystals,
       goldBoost: goldBoost,
+      relics: snapshot.relicLevels,
     );
     final gold = gps * capped;
 
     final empty = snapshot.board.where((e) => e == null).length;
-    final possible = (capped / balance.merge.spawnInterval).floor();
+    final interval = Economy.spawnInterval(balance, snapshot.relicLevels);
+    final possible = (capped / interval).floor();
     final eggs = possible.clamp(0, empty);
 
     return OfflineGain(
@@ -173,7 +235,7 @@ class OfflineCalculator {
     var remaining = gain.eggs;
     for (var i = 0; i < snapshot.board.length && remaining > 0; i++) {
       if (snapshot.board[i] == null) {
-        snapshot.board[i] = 0;
+        snapshot.board[i] = CreatureIds.egg;
         remaining -= 1;
       }
     }

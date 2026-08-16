@@ -7,6 +7,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/painting.dart';
 
 import '../core/format.dart';
+import '../core/strings.dart';
 import '../ui/theme.dart';
 import 'game_controller.dart';
 
@@ -174,11 +175,19 @@ class EnemyBlob extends PositionComponent
     final pulse = 1 + math.sin(_wobble) * 0.03;
     final r = baseRadius * pulse * (0.82 + 0.18 * hp);
     final flash = controller.lastHitFlash > 0;
-    final fill = flash ? const Color(0xFFFFF6E0) : Color.lerp(
-          const Color(0xFF5B2A7A),
-          const Color(0xFFE85D75),
-          1 - hp,
-        )!;
+    final fill = flash
+        ? const Color(0xFFFFF6E0)
+        : controller.isBossStage
+            ? Color.lerp(
+                const Color(0xFF7A1F2B),
+                const Color(0xFFFF6B6B),
+                1 - hp,
+              )!
+            : Color.lerp(
+                const Color(0xFF5B2A7A),
+                const Color(0xFFE85D75),
+                1 - hp,
+              )!;
 
     canvas.save();
     canvas.scale(1 + (1 - _squash) * 0.35, _squash);
@@ -281,12 +290,16 @@ class StageBanner extends PositionComponent
         ..strokeWidth = 1.2,
     );
 
+    final label = controller.isBossStage
+        ? '${S.boss} ${controller.snapshot.stage}'
+        : 'STAGE ${controller.snapshot.stage}';
     final tp = TextPainter(
       text: TextSpan(
-        text:
-            'STAGE ${controller.snapshot.stage}   ${formatCompact(controller.snapshot.enemyHp)} HP',
-        style: const TextStyle(
-          color: Color(0xFFFFF6E0),
+        text: '$label   ${formatCompact(controller.snapshot.enemyHp)} HP',
+        style: TextStyle(
+          color: controller.isBossStage
+              ? const Color(0xFFFFB4B4)
+              : const Color(0xFFFFF6E0),
           fontSize: 13,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.6,

@@ -38,4 +38,41 @@ class HatchTheme {
 
   static Color tier(int t) => tiers[t.clamp(0, tiers.length - 1)];
   static Color tierText(int t) => tierInk[t.clamp(0, tierInk.length - 1)];
+
+  static const List<Color> seaTiers = [
+    Color(0xFFF4E4C1),
+    Color(0xFF9AD7FF),
+    Color(0xFF5BB8F5),
+    Color(0xFF3D8FD9),
+    Color(0xFF2A6FB0),
+    Color(0xFF7CE7FF),
+    Color(0xFFE8F7FF),
+  ];
+
+  static const List<Color> fireTiers = [
+    Color(0xFFF4E4C1),
+    Color(0xFFFFB087),
+    Color(0xFFFF8A5B),
+    Color(0xFFE85D4A),
+    Color(0xFFC43C2E),
+    Color(0xFFFFD166),
+    Color(0xFFFFF0E0),
+  ];
+
+  static Color lineTier(int line, int tier) {
+    final list = switch (line) {
+      1 => seaTiers,
+      2 => fireTiers,
+      _ => tiers,
+    };
+    return list[tier.clamp(0, list.length - 1)];
+  }
+
+  static Color lineInk(int line) {
+    return switch (line) {
+      1 => const Color(0xFF0A3A66),
+      2 => const Color(0xFF6B2208),
+      _ => const Color(0xFF145C38),
+    };
+  }
 }

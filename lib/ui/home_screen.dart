@@ -12,6 +12,7 @@ import '../game/game_controller.dart';
 import '../game/hatchlings_game.dart';
 import 'hud.dart';
 import 'offline_popup.dart';
+import 'onboarding_overlay.dart';
 import 'theme.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen>
   HatchlingsGame? _game;
   bool _offlineShown = false;
   GameController? _bound;
+  String? _lastToast;
 
   @override
   void didChangeDependencies() {
@@ -87,44 +89,65 @@ class _HomeScreenState extends State<HomeScreen>
       });
     }
 
+    final toast = controller.toast;
+    if (toast != null && toast != _lastToast) {
+      _lastToast = toast;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(toast),
+            duration: const Duration(seconds: 2),
+            backgroundColor: HatchTheme.panel,
+          ),
+        );
+        controller.clearToast();
+      });
+    }
+
     return Scaffold(
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            HudBar(controller: controller),
-            Expanded(
-              flex: 55,
-              child: Stack(
-                children: [
-                  GameWidget(game: _game!),
-                  const Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 8,
-                    child: IgnorePointer(
-                      child: Text(
-                        S.tapHint,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0x88FFF6E0),
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.2,
-                          fontSize: 12,
+            Column(
+              children: [
+                HudBar(controller: controller),
+                Expanded(
+                  flex: 55,
+                  child: Stack(
+                    children: [
+                      GameWidget(game: _game!),
+                      const Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 8,
+                        child: IgnorePointer(
+                          child: Text(
+                            S.tapHint,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Color(0x88FFF6E0),
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                Expanded(
+                  flex: 45,
+                  child: ColoredBox(
+                    color: HatchTheme.dusk,
+                    child: _LowerPanel(controller: controller),
+                  ),
+                ),
+                BottomTabs(controller: controller),
+              ],
             ),
-            Expanded(
-              flex: 45,
-              child: ColoredBox(
-                color: HatchTheme.dusk,
-                child: _LowerPanel(controller: controller),
-              ),
-            ),
-            BottomTabs(controller: controller),
+            OnboardingOverlay(controller: controller),
           ],
         ),
       ),

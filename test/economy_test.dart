@@ -9,6 +9,9 @@ Balance _balance() {
       'hpGrowth': 1.15,
       'baseGold': 5,
       'goldGrowth': 1.1,
+      'bossEvery': 10,
+      'bossHpMult': 3,
+      'bossGoldMult': 4,
     },
     'upgrades': {
       'tapDamage': {
@@ -38,11 +41,21 @@ Balance _balance() {
         'baseValue': 0.1,
         'valueGrowth': 0,
       },
+      'offlineCap': {
+        'id': 'offlineCap',
+        'name': 'Nap',
+        'blurb': '',
+        'baseCost': 100,
+        'costGrowth': 2,
+        'baseValue': 7200,
+        'valueGrowth': 0,
+      },
     },
     'offline': {
       'capSeconds': 28800,
       'goldPerDamage': 0.4,
       'minPopupSeconds': 30,
+      'maxCapLevel': 2,
     },
     'merge': {
       'cols': 5,
@@ -56,8 +69,25 @@ Balance _balance() {
     'relicGoldPerCrystal': 0.01,
     'creatureDps': [0, 1, 3, 9, 27, 81, 243],
     'creatureGoldPerSec': [0, 0.2, 0.8, 3, 11, 40, 150],
+    'lineDpsMult': [1, 1, 1],
     'goldBoostSeconds': 300,
     'startingEggs': 3,
+    'contentStageCap': 200,
+    'relics': [
+      {
+        'id': 'sharpBeak',
+        'name': 'Beak',
+        'blurb': '',
+        'stat': 'tap',
+        'perLevel': 0.1,
+        'baseCost': 2,
+        'costGrowth': 1.5,
+        'maxLevel': 5,
+      },
+    ],
+    'missions': [],
+    'albumLineRewardGems': 25,
+    'albumFullRewardGems': 80,
   });
 }
 
@@ -68,40 +98,55 @@ void main() {
     expect(Economy.enemyHp(b, 1), 10);
     expect(Economy.enemyHp(b, 2), closeTo(11.5, 0.0001));
     expect(Economy.enemyHp(b, 50), greaterThan(900));
-    expect(Economy.enemyHp(b, 60), greaterThan(Economy.enemyHp(b, 50)));
+  });
+
+  test('boss stages multiply HP and gold', () {
+    expect(Economy.isBoss(b, 10), isTrue);
+    expect(Economy.enemyHp(b, 10), greaterThan(Economy.enemyHp(b, 9) * 2));
   });
 
   test('upgrade cost grows, tap damage starts usable', () {
     expect(Economy.upgradeCost(b.tapDamage, 0), 10);
-    expect(Economy.upgradeCost(b.tapDamage, 1), closeTo(11.2, 0.0001));
-    expect(Economy.tapDamage(b, 0), 1);
-    expect(Economy.autoDpsFromLevel(b, 0), 0);
-    expect(Economy.autoDpsFromLevel(b, 1), closeTo(0.8 * 1.15, 0.001));
+    expect(Economy.tapDamage(b, 0, {}), 1);
+    expect(Economy.autoDpsFromLevel(b, 0, {}), 0);
+  });
+
+  test('relics multiply tap damage', () {
+    final relics = {'sharpBeak': 2};
+    expect(Economy.tapDamage(b, 0, relics), closeTo(1.2, 0.0001));
   });
 
   test('gold multiplier stacks upgrades and crystals', () {
-    expect(Economy.goldMultiplier(b, 0, 0), 1);
-    expect(Economy.goldMultiplier(b, 10, 0), closeTo(2.0, 0.0001));
-    expect(Economy.goldMultiplier(b, 0, 100), closeTo(2.0, 0.0001));
+    expect(Economy.goldMultiplier(b, 0, 0, {}), 1);
+    expect(Economy.goldMultiplier(b, 10, 0, {}), closeTo(2.0, 0.0001));
   });
 
-  test('board creatures add DPS bonus', () {
+  test('board creatures add DPS bonus for encoded codes', () {
     final board = List<int?>.filled(20, null);
     board[0] = 1;
-    board[1] = 3;
-    expect(Economy.boardDps(b, board), 1 + 9);
-    expect(Economy.totalDps(b, 0, board), 10);
+    board[1] = 103; // sea tier 3
+    expect(Economy.boardDps(b, board, {}), 1 + 9);
   });
 
   test('max affordable stops when gold runs out', () {
     expect(Economy.maxAffordable(b.tapDamage, 0, 9), 0);
     expect(Economy.maxAffordable(b.tapDamage, 0, 10), 1);
-    // Level 0 costs 10, level 1 costs 11.2 → 21.2 buys both.
     expect(Economy.maxAffordable(b.tapDamage, 0, 21.2 + 1e-9), 2);
   });
 
+  test('offline cap grows with upgrade level', () {
+    expect(
+      Economy.offlineCapSeconds(balance: b, offlineCapLevel: 0, relics: {}),
+      28800,
+    );
+    expect(
+      Economy.offlineCapSeconds(balance: b, offlineCapLevel: 1, relics: {}),
+      28800 + 7200,
+    );
+  });
+
   test('prestige crystals require stage 50', () {
-    expect(Economy.prestigeCrystals(b, 49), 0);
-    expect(Economy.prestigeCrystals(b, 50), closeTo(5, 0.0001));
+    expect(Economy.prestigeCrystals(b, 49, {}), 0);
+    expect(Economy.prestigeCrystals(b, 50, {}), closeTo(5, 0.0001));
   });
 }

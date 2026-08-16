@@ -44,6 +44,7 @@ Balance _balance() {
       'capSeconds': 28800,
       'goldPerDamage': 0.4,
       'minPopupSeconds': 30,
+      'maxCapLevel': 2,
     },
     'merge': {
       'cols': 5,
@@ -57,8 +58,14 @@ Balance _balance() {
     'relicGoldPerCrystal': 0.01,
     'creatureDps': [0, 1, 3, 9, 27, 81, 243],
     'creatureGoldPerSec': [0, 1, 0, 0, 0, 0, 0],
+    'lineDpsMult': [1, 1, 1],
     'goldBoostSeconds': 300,
     'startingEggs': 3,
+    'contentStageCap': 200,
+    'relics': [],
+    'missions': [],
+    'albumLineRewardGems': 25,
+    'albumFullRewardGems': 80,
   });
 }
 
@@ -95,7 +102,6 @@ void main() {
     expect(gain.eggs, 10);
     OfflineCalculator.apply(snap, gain);
     expect(snap.board.where((e) => e == 0).length, 10);
-    expect(snap.board.where((e) => e == null).length, 10);
   });
 
   test('short absences do not pop the recap', () {

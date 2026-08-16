@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../core/creature_ids.dart';
 import '../core/economy.dart';
 import '../core/game_state.dart';
 import '../data/content_catalog.dart';
@@ -56,6 +57,7 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
   double lastHitFlash = 0;
   int lastKillAtMs = 0;
   FloatingHit? lastHit;
+  String? toast;
 
   Ticker? _ticker;
   Duration _lastElapsed = Duration.zero;
@@ -66,19 +68,26 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
   bool _boundLifecycle = false;
 
   bool get goldBoostActive => goldBoostLeft > 0;
+  bool get onboardingActive => snapshot.onboardingStep < 2;
+  bool get isBossStage => Economy.isBoss(balance, snapshot.stage);
 
-  double get tapDamage => Economy.tapDamage(balance, snapshot.tapLevel);
+  Map<String, int> get relics => snapshot.relicLevels;
+
+  double get tapDamage =>
+      Economy.tapDamage(balance, snapshot.tapLevel, relics);
 
   double get autoDps => Economy.totalDps(
     balance,
     snapshot.autoLevel,
     snapshot.board,
+    relics,
   );
 
   double get goldMult => Economy.goldMultiplier(
     balance,
     snapshot.goldMultLevel,
     snapshot.timeCrystals,
+    relics,
   );
 
   double get goldPerSec => Economy.goldPerSec(
@@ -88,6 +97,13 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
     goldMultLevel: snapshot.goldMultLevel,
     crystals: snapshot.timeCrystals,
     goldBoost: goldBoostActive,
+    relics: relics,
+  );
+
+  double get offlineCapSeconds => Economy.offlineCapSeconds(
+    balance: balance,
+    offlineCapLevel: snapshot.offlineCapLevel,
+    relics: relics,
   );
 
   double get hpRatio {
@@ -100,10 +116,11 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
       snapshot.highestStage >= balance.prestige.minStage;
 
   double get nextPrestigeCrystals =>
-      Economy.prestigeCrystals(balance, snapshot.stage);
+      Economy.prestigeCrystals(balance, snapshot.stage, relics);
 
   Future<void> load() async {
     snapshot = await _save.load(balance);
+    _ensureMissionDay();
     final now = _clock().millisecondsSinceEpoch;
     final gain = OfflineCalculator.compute(
       balance: balance,
@@ -152,8 +169,9 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
       lastHitFlash = math.max(0, lastHitFlash - dt);
     }
 
+    final interval = Economy.spawnInterval(balance, relics);
     _spawnAcc += dt;
-    if (_spawnAcc >= balance.merge.spawnInterval) {
+    if (_spawnAcc >= interval) {
       _spawnAcc = 0;
       trySpawnEgg();
     }
@@ -184,6 +202,9 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
     final dmg = tapDamage * (1 + (combo - 1) * 0.06);
     lastHit = FloatingHit(damage: dmg, nx: nx, ny: ny);
     _haptic(false);
+    if (snapshot.onboardingStep == 0) {
+      snapshot.onboardingStep = 1;
+    }
     dealDamage(dmg, fromTap: true);
     return dmg;
   }
@@ -211,16 +232,22 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _onKill() {
-    final reward = Economy.enemyGold(balance, snapshot.stage, goldMult) *
+    final reward =
+        Economy.enemyGold(balance, snapshot.stage, goldMult) *
         (goldBoostActive ? 2 : 1);
     snapshot.gold += reward;
     lastKillAtMs = _clock().millisecondsSinceEpoch;
     if (_rng.nextDouble() < balance.merge.killEggChance) {
       trySpawnEgg();
     }
+    snapshot.stagesClearedToday += 1;
+    _bumpMission('stages', 1);
     snapshot.stage += 1;
     if (snapshot.stage > snapshot.highestStage) {
       snapshot.highestStage = snapshot.stage;
+    }
+    if (snapshot.stage > balance.contentStageCap) {
+      // Soft wall: still playable but content paced to 200.
     }
     final hp = Economy.enemyHp(balance, snapshot.stage);
     snapshot.enemyMaxHp = hp;
@@ -234,8 +261,8 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
     }
     if (empty.isEmpty) return false;
     final slot = empty[_rng.nextInt(empty.length)];
-    snapshot.board[slot] = 0;
-    snapshot.discovered.add(0);
+    snapshot.board[slot] = CreatureIds.egg;
+    snapshot.discovered.add(CreatureIds.egg);
     notifyListeners();
     return true;
   }
@@ -265,15 +292,14 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
       if (third != null) {
         snapshot.board[from] = null;
         snapshot.board[third] = null;
-        if (a >= balance.merge.maxTier) {
-          snapshot.board[to] = a;
-          snapshot.gold += Economy.maxTierBurst(balance, snapshot.stage) *
-              (goldBoostActive ? 2 : 1);
-        } else {
-          final next = a + 1;
-          snapshot.board[to] = next;
-          snapshot.discovered.add(next);
+        final next = _mergeResult(a);
+        snapshot.board[to] = next;
+        snapshot.discovered.add(next);
+        _bumpMission('merges', 1);
+        if (snapshot.onboardingStep == 1) {
+          snapshot.onboardingStep = 2;
         }
+        _checkAlbumRewards();
         _haptic(true);
         notifyListeners();
         return true;
@@ -286,10 +312,28 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
     return true;
   }
 
-  int? _findThird(int tier, int from, int to) {
+  int _mergeResult(int code) {
+    if (code == CreatureIds.egg) {
+      final line = _rng.nextInt(CreatureIds.lineCount);
+      return CreatureIds.encode(line, 1);
+    }
+    final evolved = CreatureIds.evolved(
+      code,
+      maxTier: balance.merge.maxTier,
+    );
+    if (evolved == null) {
+      snapshot.gold +=
+          Economy.maxTierBurst(balance, snapshot.stage) *
+          (goldBoostActive ? 2 : 1);
+      return code;
+    }
+    return evolved;
+  }
+
+  int? _findThird(int code, int from, int to) {
     for (var i = 0; i < snapshot.board.length; i++) {
       if (i == from || i == to) continue;
-      if (snapshot.board[i] == tier) return i;
+      if (snapshot.board[i] == code) return i;
     }
     return null;
   }
@@ -297,8 +341,16 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
   bool buyUpgrade(String id, {int times = 1}) {
     final def = balance.upgrades[id];
     if (def == null) return false;
+    if (id == 'offlineCap' &&
+        snapshot.offlineCapLevel >= balance.offline.maxCapLevel) {
+      return false;
+    }
     var bought = 0;
     for (var i = 0; i < times; i++) {
+      if (id == 'offlineCap' &&
+          snapshot.offlineCapLevel >= balance.offline.maxCapLevel) {
+        break;
+      }
       final level = _levelOf(id);
       final cost = Economy.upgradeCost(def, level);
       if (snapshot.gold < cost) break;
@@ -314,9 +366,28 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
   bool buyMax(String id) {
     final def = balance.upgrades[id];
     if (def == null) return false;
-    final n = Economy.maxAffordable(def, _levelOf(id), snapshot.gold);
+    var n = Economy.maxAffordable(def, _levelOf(id), snapshot.gold);
+    if (id == 'offlineCap') {
+      final room = balance.offline.maxCapLevel - snapshot.offlineCapLevel;
+      n = math.min(n, room);
+    }
     if (n <= 0) return false;
     return buyUpgrade(id, times: n);
+  }
+
+  bool buyRelic(String id) {
+    final def = balance.relic(id);
+    if (def == null) return false;
+    final level = snapshot.relicLevels[id] ?? 0;
+    if (level >= def.maxLevel) return false;
+    final cost = Economy.relicCost(def, level);
+    if (snapshot.timeCrystals < cost) return false;
+    snapshot.timeCrystals -= cost;
+    snapshot.relicLevels[id] = level + 1;
+    _flashToast('Bought ${def.name}');
+    notifyListeners();
+    persist();
+    return true;
   }
 
   int _levelOf(String id) {
@@ -327,6 +398,8 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
         return snapshot.autoLevel;
       case 'goldMult':
         return snapshot.goldMultLevel;
+      case 'offlineCap':
+        return snapshot.offlineCapLevel;
       default:
         return 0;
     }
@@ -340,6 +413,8 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
         snapshot.autoLevel = level;
       case 'goldMult':
         snapshot.goldMultLevel = level;
+      case 'offlineCap':
+        snapshot.offlineCapLevel = level;
     }
   }
 
@@ -348,9 +423,11 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
       case 'tapDamage':
         return tapDamage;
       case 'autoDps':
-        return Economy.autoDpsFromLevel(balance, snapshot.autoLevel);
+        return Economy.autoDpsFromLevel(balance, snapshot.autoLevel, relics);
       case 'goldMult':
         return goldMult;
+      case 'offlineCap':
+        return offlineCapSeconds / 3600;
       default:
         return 0;
     }
@@ -369,8 +446,103 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void dismissOffline() {
+    if (pendingOffline != null) {
+      _bumpMission('offline', 1);
+    }
     pendingOffline = null;
     notifyListeners();
+  }
+
+  void advanceOnboarding() {
+    if (snapshot.onboardingStep < 2) {
+      snapshot.onboardingStep += 1;
+      notifyListeners();
+    }
+  }
+
+  void skipOnboarding() {
+    snapshot.onboardingStep = 2;
+    notifyListeners();
+    persist();
+  }
+
+  void clearToast() {
+    toast = null;
+  }
+
+  void _flashToast(String message) {
+    toast = message;
+  }
+
+  String _dayKey(DateTime dt) =>
+      '${dt.toUtc().year.toString().padLeft(4, '0')}-'
+      '${dt.toUtc().month.toString().padLeft(2, '0')}-'
+      '${dt.toUtc().day.toString().padLeft(2, '0')}';
+
+  void _ensureMissionDay() {
+    final today = _dayKey(_clock());
+    if (snapshot.missionDay == today) return;
+    snapshot.missionDay = today;
+    snapshot.missionProgress = {};
+    snapshot.missionClaimed = {};
+    snapshot.stagesClearedToday = 0;
+  }
+
+  void _bumpMission(String id, int amount) {
+    _ensureMissionDay();
+    final current = snapshot.missionProgress[id] ?? 0;
+    snapshot.missionProgress[id] = current + amount;
+  }
+
+  int missionProgress(String id) {
+    _ensureMissionDay();
+    return snapshot.missionProgress[id] ?? 0;
+  }
+
+  bool missionClaimed(String id) => snapshot.missionClaimed.contains(id);
+
+  bool canClaimMission(String id) {
+    MissionDef? def;
+    for (final m in balance.missions) {
+      if (m.id == id) def = m;
+    }
+    if (def == null) return false;
+    if (missionClaimed(id)) return false;
+    return missionProgress(id) >= def.target;
+  }
+
+  bool claimMission(String id) {
+    if (!canClaimMission(id)) return false;
+    final def = balance.missions.firstWhere((m) => m.id == id);
+    snapshot.missionClaimed.add(id);
+    snapshot.gems += def.rewardGems;
+    _flashToast('+${def.rewardGems.toInt()} gems');
+    notifyListeners();
+    persist();
+    return true;
+  }
+
+  void _checkAlbumRewards() {
+    for (var line = 0; line < CreatureIds.lineCount; line++) {
+      final key = 'line_$line';
+      if (snapshot.albumClaims.contains(key)) continue;
+      final codes = CreatureIds.lineCodes(line);
+      if (codes.every(snapshot.discovered.contains)) {
+        snapshot.albumClaims.add(key);
+        snapshot.gems += balance.albumLineRewardGems;
+        final name = catalog.line(line)?.name ?? 'Line';
+        _flashToast('$name album complete! +${balance.albumLineRewardGems.toInt()} gems');
+      }
+    }
+    const fullKey = 'album_full';
+    if (!snapshot.albumClaims.contains(fullKey)) {
+      final all = CreatureIds.allDiscoverable();
+      if (all.every(snapshot.discovered.contains)) {
+        snapshot.albumClaims.add(fullKey);
+        snapshot.gems += balance.albumFullRewardGems;
+        _flashToast('Full album! +${balance.albumFullRewardGems.toInt()} gems');
+      }
+    }
   }
 
   Future<void> watchGoldBoost() async {
@@ -398,20 +570,21 @@ class GameController extends ChangeNotifier with WidgetsBindingObserver {
 
   bool rebirth() {
     if (!canPrestige) return false;
-    final gained = Economy.prestigeCrystals(balance, snapshot.stage);
+    final gained = Economy.prestigeCrystals(balance, snapshot.stage, relics);
     snapshot.timeCrystals += gained;
     snapshot.prestigeCount += 1;
     snapshot.gold = 0;
     snapshot.tapLevel = 0;
     snapshot.autoLevel = 0;
     snapshot.goldMultLevel = 0;
+    // offlineCapLevel + relics + album persist
     snapshot.stage = 1;
     final hp = Economy.enemyHp(balance, 1);
     snapshot.enemyHp = hp;
     snapshot.enemyMaxHp = hp;
     snapshot.board = List<int?>.filled(balance.merge.cellCount, null);
     for (var i = 0; i < balance.startingEggs && i < snapshot.board.length; i++) {
-      snapshot.board[i] = 0;
+      snapshot.board[i] = CreatureIds.egg;
     }
     goldBoostLeft = 0;
     combo = 1;

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../../core/creature_ids.dart';
 import '../../core/strings.dart';
-import '../../game/game_controller.dart';
 import '../../ui/theme.dart';
 
 class CreatureFace extends StatelessWidget {
   const CreatureFace({
     super.key,
-    required this.tier,
+    required this.code,
     this.size = 48,
     this.discovered = true,
   });
 
-  final int tier;
+  final int code;
   final double size;
   final bool discovered;
 
@@ -20,23 +20,25 @@ class CreatureFace extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomPaint(
       size: Size.square(size),
-      painter: _FacePainter(tier: tier, discovered: discovered),
+      painter: _FacePainter(code: code, discovered: discovered),
     );
   }
 }
 
 class _FacePainter extends CustomPainter {
-  _FacePainter({required this.tier, required this.discovered});
+  _FacePainter({required this.code, required this.discovered});
 
-  final int tier;
+  final int code;
   final bool discovered;
 
   @override
   void paint(Canvas canvas, Size size) {
     final c = Offset(size.width / 2, size.height / 2);
     final r = size.width * 0.42;
+    final tier = CreatureIds.tierOf(code);
+    final line = CreatureIds.lineOf(code);
     final fill = discovered
-        ? HatchTheme.tier(tier)
+        ? HatchTheme.lineTier(line, tier)
         : const Color(0xFF2A2150);
     canvas.drawCircle(c, r, Paint()..color = const Color(0x33000000));
     canvas.drawCircle(c.translate(0, -1), r, Paint()..color = fill);
@@ -76,7 +78,7 @@ class _FacePainter extends CustomPainter {
       return;
     }
 
-    final ink = HatchTheme.tierText(tier);
+    final ink = HatchTheme.lineInk(line);
     final eye = Paint()..color = ink;
     canvas.drawCircle(c.translate(-r * 0.28, -r * 0.08), r * 0.1, eye);
     canvas.drawCircle(c.translate(r * 0.28, -r * 0.08), r * 0.1, eye);
@@ -85,6 +87,21 @@ class _FacePainter extends CustomPainter {
       r * 0.035,
       Paint()..color = Colors.white,
     );
+
+    // Line accent
+    if (line == 1) {
+      canvas.drawCircle(
+        c.translate(0, r * 0.55),
+        r * 0.12,
+        Paint()..color = const Color(0x886EC4FF),
+      );
+    } else if (line == 2) {
+      canvas.drawCircle(
+        c.translate(0, -r * 0.55),
+        r * 0.1,
+        Paint()..color = const Color(0xAAFF8A5B),
+      );
+    }
 
     final smile = Path()
       ..moveTo(c.dx - r * 0.22, c.dy + r * 0.18)
@@ -114,6 +131,6 @@ class _FacePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FacePainter oldDelegate) {
-    return oldDelegate.tier != tier || oldDelegate.discovered != discovered;
+    return oldDelegate.code != code || oldDelegate.discovered != discovered;
   }
 }

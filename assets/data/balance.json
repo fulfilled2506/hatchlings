@@ -1,9 +1,12 @@
 {
   "enemy": {
     "baseHp": 15,
-    "hpGrowth": 1.16,
+    "hpGrowth": 1.155,
     "baseGold": 8,
-    "goldGrowth": 1.11
+    "goldGrowth": 1.108,
+    "bossEvery": 10,
+    "bossHpMult": 3.2,
+    "bossGoldMult": 4.0
   },
   "upgrades": {
     "tapDamage": {
@@ -32,12 +35,22 @@
       "costGrowth": 1.16,
       "baseValue": 0.1,
       "valueGrowth": 0
+    },
+    "offlineCap": {
+      "id": "offlineCap",
+      "name": "Longer Nest Nap",
+      "blurb": "Raise offline gold cap by 2 hours.",
+      "baseCost": 2500,
+      "costGrowth": 3.5,
+      "baseValue": 7200,
+      "valueGrowth": 0
     }
   },
   "offline": {
     "capSeconds": 28800,
     "goldPerDamage": 0.42,
-    "minPopupSeconds": 30
+    "minPopupSeconds": 30,
+    "maxCapLevel": 2
   },
   "merge": {
     "cols": 5,
@@ -54,6 +67,115 @@
   "relicGoldPerCrystal": 0.012,
   "creatureDps": [0, 0.7, 2.4, 8.5, 30, 105, 380],
   "creatureGoldPerSec": [0, 0.25, 0.9, 3.2, 12, 44, 160],
+  "lineDpsMult": [1.0, 1.05, 1.1],
   "goldBoostSeconds": 300,
-  "startingEggs": 3
+  "startingEggs": 3,
+  "contentStageCap": 200,
+  "relics": [
+    {
+      "id": "sharpBeak",
+      "name": "Sharp Beak",
+      "blurb": "+8% tap damage per level.",
+      "stat": "tap",
+      "perLevel": 0.08,
+      "baseCost": 3,
+      "costGrowth": 1.55,
+      "maxLevel": 10
+    },
+    {
+      "id": "steadyNest",
+      "name": "Steady Nest",
+      "blurb": "+8% auto DPS per level.",
+      "stat": "auto",
+      "perLevel": 0.08,
+      "baseCost": 3,
+      "costGrowth": 1.55,
+      "maxLevel": 10
+    },
+    {
+      "id": "goldHoard",
+      "name": "Gold Hoard",
+      "blurb": "+6% gold find per level.",
+      "stat": "gold",
+      "perLevel": 0.06,
+      "baseCost": 4,
+      "costGrowth": 1.6,
+      "maxLevel": 10
+    },
+    {
+      "id": "longNap",
+      "name": "Long Nap",
+      "blurb": "+1h offline cap per level.",
+      "stat": "offlineCap",
+      "perLevel": 3600,
+      "baseCost": 5,
+      "costGrowth": 1.7,
+      "maxLevel": 4
+    },
+    {
+      "id": "eggWhisper",
+      "name": "Egg Whisper",
+      "blurb": "Eggs spawn 6% faster per level.",
+      "stat": "spawn",
+      "perLevel": 0.06,
+      "baseCost": 4,
+      "costGrowth": 1.6,
+      "maxLevel": 8
+    },
+    {
+      "id": "crystalLens",
+      "name": "Crystal Lens",
+      "blurb": "+10% rebirth crystals per level.",
+      "stat": "prestige",
+      "perLevel": 0.1,
+      "baseCost": 6,
+      "costGrowth": 1.65,
+      "maxLevel": 8
+    },
+    {
+      "id": "softShell",
+      "name": "Soft Shell",
+      "blurb": "+7% offline gold rate per level.",
+      "stat": "offlineRate",
+      "perLevel": 0.07,
+      "baseCost": 4,
+      "costGrowth": 1.6,
+      "maxLevel": 10
+    },
+    {
+      "id": "swarmCall",
+      "name": "Swarm Call",
+      "blurb": "+9% nest DPS per level.",
+      "stat": "board",
+      "perLevel": 0.09,
+      "baseCost": 5,
+      "costGrowth": 1.6,
+      "maxLevel": 10
+    }
+  ],
+  "missions": [
+    {
+      "id": "stages",
+      "title": "Push the nest",
+      "blurb": "Clear {target} stages today.",
+      "target": 25,
+      "rewardGems": 15
+    },
+    {
+      "id": "merges",
+      "title": "Busy hatchery",
+      "blurb": "Merge creatures {target} times.",
+      "target": 12,
+      "rewardGems": 12
+    },
+    {
+      "id": "offline",
+      "title": "Nap collector",
+      "blurb": "Collect offline rewards once.",
+      "target": 1,
+      "rewardGems": 10
+    }
+  ],
+  "albumLineRewardGems": 25,
+  "albumFullRewardGems": 80
 }
