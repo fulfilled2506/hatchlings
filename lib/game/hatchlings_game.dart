@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
@@ -18,7 +18,7 @@ class HatchlingsGame extends FlameGame with TapCallbacks {
   int _seenHit = 0;
 
   @override
-  Color backgroundColor() => HatchTheme.night;
+  ui.Color backgroundColor() => HatchTheme.night;
 
   @override
   Future<void> onLoad() async {
@@ -61,7 +61,7 @@ class HatchlingsGame extends FlameGame with TapCallbacks {
             text: 'x${controller.combo}',
             position: pos + Vector2(0, -28),
             tint: HatchTheme.gold,
-            scale: 0.85,
+            textScale: 0.85,
           ),
         );
       }
@@ -105,7 +105,7 @@ class BattleBackdrop extends Component with HasGameReference<HatchlingsGame> {
     final s = game.size;
     final rect = Offset.zero & Size(s.x, s.y);
     final sky = Paint()
-      ..shader = Gradient.linear(
+      ..shader = ui.Gradient.linear(
         Offset.zero,
         Offset(0, s.y),
         const [Color(0xFF1B1240), Color(0xFF2A1B4E), Color(0xFF1A3A3A)],
@@ -185,7 +185,11 @@ class EnemyBlob extends PositionComponent
 
     final shadow = Paint()..color = const Color(0x66000000);
     canvas.drawOval(
-      Rect.fromCenter(center: const Offset(0, r * 0.95), width: r * 1.6, height: r * 0.35),
+      Rect.fromCenter(
+        center: Offset(0, r * 0.95),
+        width: r * 1.6,
+        height: r * 0.35,
+      ),
       shadow,
     );
 
@@ -299,12 +303,12 @@ class DamageFloater extends PositionComponent {
     required this.text,
     required Vector2 position,
     this.tint = HatchTheme.gold,
-    this.scale = 1,
+    this.textScale = 1,
   }) : super(position: position, anchor: Anchor.center);
 
   final String text;
   final Color tint;
-  final double scale;
+  final double textScale;
   double _life = 0;
 
   @override
@@ -321,8 +325,8 @@ class DamageFloater extends PositionComponent {
       text: TextSpan(
         text: text,
         style: TextStyle(
-          color: tint.withOpacity(1 - t),
-          fontSize: 22 * scale,
+          color: tint.withValues(alpha: 1 - t),
+          fontSize: 22 * textScale,
           fontWeight: FontWeight.w800,
         ),
       ),

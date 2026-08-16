@@ -96,7 +96,8 @@ void main() {
   test('max affordable stops when gold runs out', () {
     expect(Economy.maxAffordable(b.tapDamage, 0, 9), 0);
     expect(Economy.maxAffordable(b.tapDamage, 0, 10), 1);
-    expect(Economy.maxAffordable(b.tapDamage, 0, 21.2), 2);
+    // Level 0 costs 10, level 1 costs 11.2 → 21.2 buys both.
+    expect(Economy.maxAffordable(b.tapDamage, 0, 21.2 + 1e-9), 2);
   });
 
   test('prestige crystals require stage 50', () {

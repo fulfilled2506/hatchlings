@@ -2,18 +2,27 @@
 
 Phase 1 vertical slice — hatch eggs, merge 3, tap the beast, earn gold while away.
 
-## Run
+Project path: `/Users/hoonlee/hatchlings`
 
-Install the [Flutter SDK](https://docs.flutter.dev/get-started/install), then from this folder:
+## Run (this machine)
+
+Flutter 3.47 is installed via Homebrew. Env vars are in `~/.zshrc`.
 
 ```bash
-flutter create . --org com.hatchlings --project-name hatchlings --platforms=ios,android
+cd /Users/hoonlee/hatchlings
 flutter pub get
 flutter test
-flutter run
+flutter run -d chrome          # fastest smoke run
+flutter build apk --debug      # Android APK (needs device/emulator for install)
 ```
 
-`flutter create .` only adds iOS/Android wrappers. It will not overwrite `lib/` or `assets/`.
+iOS / macOS desktop need a full **Xcode** install from the App Store, then:
+
+```bash
+sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+sudo xcodebuild -runFirstLaunch
+flutter run -d ios
+```
 
 ## Slice
 
